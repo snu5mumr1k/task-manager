@@ -1,3 +1,6 @@
 [submodule "telegram-bot-simple"]
 	path = telegram-bot-simple
 	url = https://github.com/fizruk/telegram-bot-simple.git
+[submodule "sqlite-simple"]
+	path = sqlite-simple
+	url = https://github.com/nurpax/sqlite-simple.git
