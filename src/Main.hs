@@ -2,17 +2,12 @@
 
 module Main where
 
+import System.Environment
 import Data.Text (Text)
 import qualified Data.Text as Text
 
 import Telegram.Bot.API
 import Telegram.Bot.Simple
-
-type Command = String
-type Message = Text
-
-processCommand :: Command -> Message
-processCommand _ = "Hi! I'm dumb."
 
 type Model = ()
 
@@ -38,7 +33,7 @@ handleAction :: Action -> Model -> Eff Action Model
 handleAction action model = case action of
   NoOp -> pure model
   Echo msg -> model <# do
-    replyText msg
+    replyText . Text.pack $ "Hi! I'm dumb."
     return NoOp
 
 run :: Token -> IO ()
@@ -48,6 +43,5 @@ run token = do
 
 main :: IO ()
 main = do
-  putStrLn "Please, enter Telegram bot's API token:"
-  token <- Token . Text.pack <$> getLine
-  run token
+    token <- getEnv $ "TELEGRAM_TOKEN"
+    run . Token . Text.pack $ token
