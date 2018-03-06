@@ -20,4 +20,5 @@ executable task-manager
   build-depends:
                 base >= 4.7 && < 5
               , telegram-bot-simple
+              , sqlite-simple
               , text
