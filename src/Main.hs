@@ -27,9 +27,10 @@ data Action
     | Echo Text
 
 type Task = String
+type TaskId = Int
 
-echoBot :: BotApp Model Action
-echoBot = BotApp
+taskManager :: BotApp Model Action
+taskManager = BotApp
     { botInitialModel = ()
     , botAction = updateToAction
     , botHandler = handleAction
@@ -52,9 +53,7 @@ echoBot = BotApp
 run :: Token -> IO ()
 run token = do
     env <- defaultTelegramClientEnv token
-    startBot_ (conversationBot updateChatId echoBot) env
-
-saveTask :: Task ->
+    startBot_ (conversationBot updateChatId taskManager) env
 
 main :: IO ()
 main = do
