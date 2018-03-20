@@ -1,8 +1,10 @@
 {-# OPTIONS_GHC -Wall -fno-warn-type-defaults #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Main where
 
+import GHC.Int
 import System.Environment
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -15,52 +17,57 @@ import Database.SQLite.Simple
 import Database.SQLite.Simple.FromRow
 import Database.SQLite.Simple.Types
 
-data TestField = TestField Int String deriving (Show)
-
-instance FromRow TestField where
-    fromRow = TestField <$> field <*> field
-
-type Model = ()
-
-data Action
-    = NoOp
-    | Echo Text
+database :: String
+database = "test.db"
 
 type Task = String
-type TaskId = Int
+type TaskId = GHC.Int.Int64
 
-taskManager :: BotApp Model Action
-taskManager = BotApp
-    { botInitialModel = ()
-    , botAction = updateToAction
-    , botHandler = handleAction
-    , botJobs = []
+data TaskManager = TaskManager
+    { addTask :: Task -> IO TaskId
+    , removeTask :: TaskId -> IO ()
+    , showTask :: TaskId -> IO Task
+    }
+
+getTaskManager = TaskManager
+    { addTask = addTask_
+    , removeTask = removeTask_
+    , showTask = showTask_
     }
     where
-        updateToAction :: Update -> Model -> Maybe Action
-        updateToAction update _ =
-            case updateMessageText update of
-                Just text -> Just (Echo text)
-                Nothing   -> Nothing
+        addTask_ task = do
+            conn <- open database
+            execute conn "insert into Tasks (Text) values(?)"
+                (Only task)
+            taskId <- lastInsertRowId conn
+            close conn
+            return taskId
 
-        handleAction :: Action -> Model -> Eff Action Model
-        handleAction action model = case action of
-            NoOp -> pure model
-            Echo msg -> model <# do
-                replyText . Text.pack $ "Hi! I'm dumb."
-                return NoOp
+        removeTask_ taskId = do
+            conn <- open database
+            execute conn "delete from Tasks where TaskId = (?)" (Only taskId)
+            close conn
 
-run :: Token -> IO ()
-run token = do
-    env <- defaultTelegramClientEnv token
-    startBot_ (conversationBot updateChatId taskManager) env
+        showTask_ taskId = do
+            conn <- open database
+            [Only result] <- query conn "select Text from Tasks where TaskId = (?)" (Only taskId) :: IO [Only String]
+            close conn
+            return result
+
+createTable :: String -> IO ()
+createTable database= do
+    conn <- open database
+    execute_ conn "create table if not exists Tasks (TaskID integer primary key, Text TEXT)"
+    close conn
+
+run :: TaskManager -> Task -> IO Task
+run (TaskManager {showTask, removeTask, addTask}) task = do
+    taskId <- addTask task
+    showTask taskId
 
 main :: IO ()
 main = do
-    conn <- open "test.db"
-    close conn
-    execute conn "INSERT INTO test (str) VALUES (?)"
-        (Only ("test string 2" :: String))
-    r <- query_ conn "SELECT * from test" :: IO [TestField]
-    token <- getEnv $ "TELEGRAM_TOKEN"
-    run . Token . Text.pack $ token
+    createTable database
+    inputText <- getLine
+    textInBase <- run (getTaskManager) inputText
+    putStrLn textInBase
