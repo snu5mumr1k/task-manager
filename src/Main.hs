@@ -4,23 +4,20 @@
 
 module Main where
 
-import Debug.Trace
+import Control.Applicative
 import Control.Monad.IO.Class
-
-import GHC.Int
-import System.Environment
 import Data.Text (Text)
 import Data.Text.IO as TextIO
+import GHC.Int
+import System.Environment
 import qualified Data.Text as Text
 
-import Telegram.Bot.API
-import Telegram.Bot.Simple
-import Telegram.Bot.Simple.UpdateParser
-
-import Control.Applicative
 import Database.SQLite.Simple
 import Database.SQLite.Simple.FromRow
 import Database.SQLite.Simple.Types
+import Telegram.Bot.API
+import Telegram.Bot.Simple
+import Telegram.Bot.Simple.UpdateParser
 
 database :: String
 database = "test.db"
@@ -94,11 +91,11 @@ taskManager = BotApp
   where
     updateToAction :: Model -> Update -> Maybe Action
     updateToAction _ = parseUpdate $
-          AddTask      <$> plainText
-      <|> Start        <$  command "start"
-      <|> AddTask      <$> command "add"
-      <|> RemoveTask   <$> command "remove"
-      <|> Show         <$ command "show"
+          AddTask <$> plainText
+      <|> Start <$  command "start"
+      <|> AddTask <$> command "add"
+      <|> RemoveTask <$> command "remove"
+      <|> Show <$ command "show"
       <|> callbackQueryDataRead
 
     handleAction :: Action -> Model -> Eff Action Model
