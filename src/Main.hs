@@ -9,6 +9,7 @@ import Control.Monad.IO.Class
 import Data.Text (Text)
 import Data.Text.IO as TextIO
 import GHC.Int
+import GHC.Exts hiding ((<#))
 import System.Environment
 import qualified Data.Text as Text
 
@@ -37,9 +38,9 @@ data Action
 
 data TasksStorage = TasksStorage
   { addTask :: Task -> IO TaskId
-  , removeTask :: TaskId -> IO ()
+  , removeTask :: TaskId -> IO Bool
   , getTask :: TaskId -> IO Task
-  , getAllTasks :: IO [Task]
+  , getAllTasks :: IO [(TaskId, Task)]
   }
 
 data Model = Model TasksStorage
@@ -62,6 +63,7 @@ getTasksStorage = TasksStorage
       conn <- open database
       execute conn "delete from Tasks where TaskId = (?)" (Only taskId)
       close conn
+      return True
 
     getTask_ taskId = do
       conn <- open database
@@ -71,9 +73,9 @@ getTasksStorage = TasksStorage
 
     getAllTasks_ = do
       conn <- open database
-      result <- query_ conn "select Text from Tasks" :: IO [Only Task]
+      result <- query_ conn "select TaskId, Text from Tasks" :: IO [(TaskId, Task)]
       close conn
-      return $ map fromOnly result
+      return result
 
 setupDatabase :: Database -> IO ()
 setupDatabase (Database database) = do
@@ -108,12 +110,16 @@ taskManager = BotApp
         taskId <- liftIO $ addTask tasksStorage task
         reply . toReplyMessage . Text.pack $ "Added " ++ (show taskId)
         return NoOp
-      RemoveTask task -> Model tasksStorage <# do
-        reply "Task removed"
+      RemoveTask stringifiedTaskId -> Model tasksStorage <# do
+        taskText <- liftIO $ getTask tasksStorage taskId
+        success <- liftIO $ removeTask tasksStorage taskId
+        reply .toReplyMessage $ Text.concat ["Task ", taskText, " removed"]
         return NoOp
+        where
+          taskId = read $ Text.unpack stringifiedTaskId
       Show -> Model tasksStorage <# do
         tasks <- liftIO $ getAllTasks tasksStorage
-        reply . toReplyMessage . Text.concat $ ["Show \n", (Text.unlines tasks)]
+        reply . toReplyMessage $ Text.concat ["Show \n", Text.pack . unlines $ map (show) tasks]
         return NoOp
 
 runBot :: Token -> IO ()
