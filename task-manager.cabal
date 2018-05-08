@@ -14,8 +14,9 @@ cabal-version:       >=1.10
 extra-source-files:  README.md
 
 executable task-manager
-  hs-source-dirs:      src
+  hs-source-dirs:      src/
   main-is:             Main.hs
+  other-modules:       TasksStorage
   default-language:    Haskell2010
   build-depends:
                 base >= 4.7 && < 5
