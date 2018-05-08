@@ -26,7 +26,6 @@ data Action
   | Show
   deriving (Show, Read)
 
-
 data Model = Model TasksStorage
 
 taskManager :: BotApp Model Action
@@ -54,16 +53,16 @@ taskManager = BotApp
         return NoOp
       AddTask task -> Model tasksStorage <# do
         taskId <- liftIO $ addTask tasksStorage task
-        replyText . Text.pack $ "Added " ++ (show taskId)
+        replyText . Text.pack $ "Added new task number #" ++ (show taskId)
         return NoOp
       RemoveTask "" -> Model tasksStorage <# do
         success <- liftIO $ removeAllTasks tasksStorage
-        replyText $ "Task list cleared"
+        replyText $ "Tasks list cleared"
         return NoOp
       RemoveTask stringifiedTaskId -> Model tasksStorage <# do
-        taskText <- liftIO $ getTask tasksStorage taskId
+        task <- liftIO $ getTask tasksStorage taskId
         success <- liftIO $ removeTask tasksStorage taskId
-        replyText $ Text.concat ["Task ", taskText, " removed"]
+        replyText $ Text.concat ["Task removed:\n", task]
         return NoOp
         where
           taskId = read $ Text.unpack stringifiedTaskId
