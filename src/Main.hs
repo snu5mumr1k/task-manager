@@ -39,6 +39,7 @@ data Action
 data TasksStorage = TasksStorage
   { addTask :: Task -> IO TaskId
   , removeTask :: TaskId -> IO Bool
+  , removeAllTasks :: IO Bool
   , getTask :: TaskId -> IO Task
   , getAllTasks :: IO [(TaskId, Task)]
   }
@@ -48,6 +49,7 @@ data Model = Model TasksStorage
 getTasksStorage = TasksStorage
   { addTask = addTask_
   , removeTask = removeTask_
+  , removeAllTasks = removeAllTasks_
   , getTask = getTask_
   , getAllTasks = getAllTasks_
   }
@@ -62,6 +64,12 @@ getTasksStorage = TasksStorage
     removeTask_ taskId = do
       conn <- open database
       execute conn "delete from Tasks where TaskId = (?)" (Only taskId)
+      close conn
+      return True
+
+    removeAllTasks_ = do
+      conn <- open database
+      execute_ conn "delete from Tasks"
       close conn
       return True
 
@@ -110,16 +118,22 @@ taskManager = BotApp
         taskId <- liftIO $ addTask tasksStorage task
         reply . toReplyMessage . Text.pack $ "Added " ++ (show taskId)
         return NoOp
+      RemoveTask "" -> Model tasksStorage <# do
+        success <- liftIO $ removeAllTasks tasksStorage
+        reply . toReplyMessage $ "Task list cleared"
+        return NoOp
       RemoveTask stringifiedTaskId -> Model tasksStorage <# do
         taskText <- liftIO $ getTask tasksStorage taskId
         success <- liftIO $ removeTask tasksStorage taskId
-        reply .toReplyMessage $ Text.concat ["Task ", taskText, " removed"]
+        reply . toReplyMessage $ Text.concat ["Task ", taskText, " removed"]
         return NoOp
         where
           taskId = read $ Text.unpack stringifiedTaskId
       Show -> Model tasksStorage <# do
         tasks <- liftIO $ getAllTasks tasksStorage
-        reply . toReplyMessage $ Text.concat ["Show \n", Text.pack . unlines $ map (show) tasks]
+        case tasks of
+            [] -> reply . toReplyMessage $ "There are no tasks"
+            tasks -> reply . toReplyMessage $ Text.concat ["Show \n", Text.pack . unlines $ map (show) tasks]
         return NoOp
 
 runBot :: Token -> IO ()
