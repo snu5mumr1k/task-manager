@@ -4,29 +4,19 @@
 
 module Main where
 
+import TasksStorage
+
 import Control.Applicative
 import Control.Monad.IO.Class
-import Data.Text (Text)
 import Data.Text.IO as TextIO
 import GHC.Int
 import GHC.Exts hiding ((<#))
 import System.Environment
 import qualified Data.Text as Text
 
-import Database.SQLite.Simple
-import Database.SQLite.Simple.FromRow
-import Database.SQLite.Simple.Types
 import Telegram.Bot.API
 import Telegram.Bot.Simple
 import Telegram.Bot.Simple.UpdateParser
-
-database :: String
-database = "test.db"
-
-type Task = Text
-type TaskId = GHC.Int.Int64
-
-data Database = Database String
 
 data Action
   = NoOp
@@ -36,60 +26,8 @@ data Action
   | Show
   deriving (Show, Read)
 
-data TasksStorage = TasksStorage
-  { addTask :: Task -> IO TaskId
-  , removeTask :: TaskId -> IO Bool
-  , removeAllTasks :: IO Bool
-  , getTask :: TaskId -> IO Task
-  , getAllTasks :: IO [(TaskId, Task)]
-  }
 
 data Model = Model TasksStorage
-
-getTasksStorage = TasksStorage
-  { addTask = addTask_
-  , removeTask = removeTask_
-  , removeAllTasks = removeAllTasks_
-  , getTask = getTask_
-  , getAllTasks = getAllTasks_
-  }
-  where
-    addTask_ task = do
-      conn <- open database
-      execute conn "insert into Tasks (Text) values(?)" (Only task)
-      taskId <- lastInsertRowId conn
-      close conn
-      return taskId
-
-    removeTask_ taskId = do
-      conn <- open database
-      execute conn "delete from Tasks where TaskId = (?)" (Only taskId)
-      close conn
-      return True
-
-    removeAllTasks_ = do
-      conn <- open database
-      execute_ conn "delete from Tasks"
-      close conn
-      return True
-
-    getTask_ taskId = do
-      conn <- open database
-      [Only result] <- query conn "select Text from Tasks where TaskId = (?)" (Only taskId) :: IO [Only Task]
-      close conn
-      return result
-
-    getAllTasks_ = do
-      conn <- open database
-      result <- query_ conn "select TaskId, Text from Tasks" :: IO [(TaskId, Task)]
-      close conn
-      return result
-
-setupDatabase :: Database -> IO ()
-setupDatabase (Database database) = do
-  conn <- open database
-  execute_ conn "create table if not exists Tasks (TaskID integer primary key, Text TEXT)"
-  close conn
 
 taskManager :: BotApp Model Action
 taskManager = BotApp
@@ -116,24 +54,24 @@ taskManager = BotApp
         return NoOp
       AddTask task -> Model tasksStorage <# do
         taskId <- liftIO $ addTask tasksStorage task
-        reply . toReplyMessage . Text.pack $ "Added " ++ (show taskId)
+        replyText . Text.pack $ "Added " ++ (show taskId)
         return NoOp
       RemoveTask "" -> Model tasksStorage <# do
         success <- liftIO $ removeAllTasks tasksStorage
-        reply . toReplyMessage $ "Task list cleared"
+        replyText $ "Task list cleared"
         return NoOp
       RemoveTask stringifiedTaskId -> Model tasksStorage <# do
         taskText <- liftIO $ getTask tasksStorage taskId
         success <- liftIO $ removeTask tasksStorage taskId
-        reply . toReplyMessage $ Text.concat ["Task ", taskText, " removed"]
+        replyText $ Text.concat ["Task ", taskText, " removed"]
         return NoOp
         where
           taskId = read $ Text.unpack stringifiedTaskId
       Show -> Model tasksStorage <# do
         tasks <- liftIO $ getAllTasks tasksStorage
         case tasks of
-            [] -> reply . toReplyMessage $ "There are no tasks"
-            tasks -> reply . toReplyMessage $ Text.concat ["Show \n", Text.pack . unlines $ map (show) tasks]
+          [] -> replyText $ "There are no tasks"
+          tasks -> replyText . Text.pack . unlines $ map (show) tasks
         return NoOp
 
 runBot :: Token -> IO ()
@@ -143,6 +81,6 @@ runBot token = do
 
 main :: IO ()
 main = do
-  setupDatabase (Database database)
+  setupDatabase (Database "test.db")
   token <- getEnv $ "TELEGRAM_TOKEN"
   runBot . Token . Text.pack $ token
