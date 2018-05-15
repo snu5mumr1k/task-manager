@@ -55,9 +55,10 @@ taskManager = BotApp
       Start -> Model tasksStorage <# do
         reply "Start"
         return NoOp
-      AddTask task -> Model tasksStorage <# do
-        taskId <- liftIO $ addTask tasksStorage task
-        replyText . Text.pack $ printf "Added new task number #%d" taskId
+      AddTask text -> Model tasksStorage <# do
+        taskId <- liftIO $ addTask tasksStorage text
+        task <- liftIO $ getTask tasksStorage taskId
+        replyText . Text.pack $ printf "Added new task:\n%s" $ show task
         return NoOp
       RemoveTask "" -> Model tasksStorage <# do
         liftIO $removeAllTasks tasksStorage
@@ -74,7 +75,7 @@ taskManager = BotApp
         tasks <- liftIO $ getAllTasks tasksStorage
         case tasks of
           [] -> replyText $ "There are no tasks"
-          tasks -> replyText . Text.unlines $ map (Text.pack . show) tasks
+          tasks -> replyText . Text.intercalate "\n-------\n" $ map (Text.pack . show) tasks
         return NoOp
 
 runBot :: Token -> IO ()

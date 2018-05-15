@@ -20,7 +20,7 @@ type AlarmTime = Time.UTCTime
 data Task = Task Id Text AlarmTime
 
 instance Show Task where
-  show (Task id text alarmTime) = printf "%d: %s %s" id (Text.unpack text) (formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S" alarmTime)
+  show (Task id text alarmTime) = printf "Task Id: %d\nContent: %s\nAlarm Time: %s" id (Text.unpack text) (formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S" alarmTime)
 
 instance FromRow Task where
   fromRow = Task <$> field <*> field <*> field
