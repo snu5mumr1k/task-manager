@@ -4,12 +4,12 @@
 
 module Main where
 
+import qualified Task
 import TasksStorage
 
 import Control.Applicative
 import Control.Monad.IO.Class
 import Data.Text.IO as TextIO
-import GHC.Int
 import GHC.Exts hiding ((<#))
 import System.Environment
 import qualified Data.Text as Text
@@ -21,8 +21,8 @@ import Telegram.Bot.Simple.UpdateParser
 data Action
   = NoOp
   | Start
-  | AddTask Task
-  | RemoveTask Task
+  | AddTask Task.Text
+  | RemoveTask Task.Text
   | Show
   deriving (Show, Read)
 
@@ -70,7 +70,7 @@ taskManager = BotApp
         tasks <- liftIO $ getAllTasks tasksStorage
         case tasks of
           [] -> replyText $ "There are no tasks"
-          tasks -> replyText . Text.pack . unlines $ map (show) tasks
+          tasks -> replyText . Text.unlines $ map (Text.pack . show) tasks
         return NoOp
 
 runBot :: Token -> IO ()

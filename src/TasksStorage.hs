@@ -4,28 +4,18 @@
 
 module TasksStorage where
 
-import GHC.Int
-import qualified Data.Text as Text
-import Text.Printf
+import qualified Task
 
 import Database.SQLite.Simple
-import Database.SQLite.Simple.FromRow
-import Database.SQLite.Simple.Types
-
-type Task = Text.Text
-type TaskId = GHC.Int.Int64
-
-showTask :: (TaskId, Task) -> Text.Text
-showTask (id, text) = Text.pack $ printf "%d: %s" id (Text.unpack text)
 
 data Database = Database String
 
 data TasksStorage = TasksStorage
-  { addTask :: Task -> IO TaskId
-  , removeTask :: TaskId -> IO Bool
+  { addTask :: Task.Text -> IO Task.Id
+  , removeTask :: Task.Id -> IO Bool
   , removeAllTasks :: IO Bool
-  , getTask :: TaskId -> IO Task
-  , getAllTasks :: IO [(TaskId, Task)]
+  , getTask :: Task.Id -> IO Task.Text
+  , getAllTasks :: IO [Task.Task]
   }
 
 getTasksStorage = TasksStorage
@@ -59,18 +49,18 @@ getTasksStorage = TasksStorage
 
     getTask_ taskId = do
       conn <- open databaseName
-      [Only result] <- query conn "select Text from Tasks where TaskId = (?)" (Only taskId) :: IO [Only Task]
+      [Only result] <- query conn "select Text from Tasks where TaskId = (?)" (Only taskId) :: IO [Only Task.Text]
       close conn
       return result
 
     getAllTasks_ = do
       conn <- open databaseName
-      result <- query_ conn "select TaskId, Text from Tasks" :: IO [(TaskId, Task)]
+      result <- query_ conn "select TaskId, Text, AlarmTime from Tasks" :: IO [Task.Task]
       close conn
       return result
 
 setupDatabase :: Database -> IO ()
 setupDatabase (Database databaseName) = do
   conn <- open databaseName
-  execute_ conn "create table if not exists Tasks (TaskID integer primary key, Text TEXT)"
+  execute_ conn "create table if not exists Tasks (TaskID integer primary key, Text text not null, AlarmTime text default \"2018-05-10 12:12:12\")"
   close conn
