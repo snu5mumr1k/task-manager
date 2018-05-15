@@ -13,6 +13,7 @@ import Data.Text.IO as TextIO
 import GHC.Exts hiding ((<#))
 import System.Environment
 import qualified Data.Text as Text
+import Text.Printf
 
 import Telegram.Bot.API
 import Telegram.Bot.Simple
@@ -28,9 +29,12 @@ data Action
 
 data Model = Model TasksStorage
 
+databaseName :: String
+databaseName = "test.db"
+
 taskManager :: BotApp Model Action
 taskManager = BotApp
-  { botInitialModel = Model getTasksStorage
+  { botInitialModel = Model $ getTasksStorage databaseName
   , botAction = flip updateToAction
   , botHandler = handleAction
   , botJobs = []
@@ -47,13 +51,13 @@ taskManager = BotApp
 
     handleAction :: Action -> Model -> Eff Action Model
     handleAction action (Model tasksStorage) = case action of
-      NoOp -> pure (Model tasksStorage)
+      NoOp -> pure $ Model tasksStorage
       Start -> Model tasksStorage <# do
         reply "Start"
         return NoOp
       AddTask task -> Model tasksStorage <# do
         taskId <- liftIO $ addTask tasksStorage task
-        replyText . Text.pack $ "Added new task number #" ++ (show taskId)
+        replyText . Text.pack $ printf "Added new task number #%d" taskId
         return NoOp
       RemoveTask "" -> Model tasksStorage <# do
         success <- liftIO $ removeAllTasks tasksStorage
@@ -62,7 +66,7 @@ taskManager = BotApp
       RemoveTask stringifiedTaskId -> Model tasksStorage <# do
         task <- liftIO $ getTask tasksStorage taskId
         success <- liftIO $ removeTask tasksStorage taskId
-        replyText $ Text.concat ["Task removed:\n", task]
+        replyText . Text.pack $ printf "Task removed:\n%s" $ Text.unpack task
         return NoOp
         where
           taskId = read $ Text.unpack stringifiedTaskId
@@ -80,6 +84,6 @@ runBot token = do
 
 main :: IO ()
 main = do
-  setupDatabase (Database "test.db")
+  setupDatabase $ Database databaseName
   token <- getEnv $ "TELEGRAM_TOKEN"
   runBot . Token . Text.pack $ token

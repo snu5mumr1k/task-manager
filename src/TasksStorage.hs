@@ -18,7 +18,7 @@ data TasksStorage = TasksStorage
   , getAllTasks :: IO [Task.Task]
   }
 
-getTasksStorage = TasksStorage
+getTasksStorage databaseName = TasksStorage
   { addTask = addTask_
   , removeTask = removeTask_
   , removeAllTasks = removeAllTasks_
@@ -26,8 +26,6 @@ getTasksStorage = TasksStorage
   , getAllTasks = getAllTasks_
   }
   where
-    databaseName = "test.db"
-
     addTask_ task = do
       conn <- open databaseName
       execute conn "insert into Tasks (Text) values(?)" (Only task)
