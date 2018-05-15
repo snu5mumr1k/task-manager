@@ -60,13 +60,13 @@ taskManager = BotApp
         replyText . Text.pack $ printf "Added new task number #%d" taskId
         return NoOp
       RemoveTask "" -> Model tasksStorage <# do
-        success <- liftIO $ removeAllTasks tasksStorage
+        liftIO $removeAllTasks tasksStorage
         replyText $ "Tasks list cleared"
         return NoOp
       RemoveTask stringifiedTaskId -> Model tasksStorage <# do
         task <- liftIO $ getTask tasksStorage taskId
-        success <- liftIO $ removeTask tasksStorage taskId
-        replyText . Text.pack $ printf "Task removed:\n%s" $ Text.unpack task
+        liftIO $ removeTask tasksStorage taskId
+        replyText . Text.pack $ printf "Task removed:\n%s" $ show task
         return NoOp
         where
           taskId = read $ Text.unpack stringifiedTaskId

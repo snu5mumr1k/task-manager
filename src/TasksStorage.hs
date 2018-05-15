@@ -12,9 +12,9 @@ data Database = Database String
 
 data TasksStorage = TasksStorage
   { addTask :: Task.Text -> IO Task.Id
-  , removeTask :: Task.Id -> IO Bool
-  , removeAllTasks :: IO Bool
-  , getTask :: Task.Id -> IO Task.Text
+  , removeTask :: Task.Id -> IO ()
+  , removeAllTasks :: IO ()
+  , getTask :: Task.Id -> IO Task.Task
   , getAllTasks :: IO [Task.Task]
   }
 
@@ -37,17 +37,17 @@ getTasksStorage databaseName = TasksStorage
       conn <- open databaseName
       execute conn "delete from Tasks where TaskId = (?)" (Only taskId)
       close conn
-      return True
+      return ()
 
     removeAllTasks_ = do
       conn <- open databaseName
       execute_ conn "delete from Tasks"
       close conn
-      return True
+      return ()
 
     getTask_ taskId = do
       conn <- open databaseName
-      [Only result] <- query conn "select Text from Tasks where TaskId = (?)" (Only taskId) :: IO [Only Task.Text]
+      [result] <- query conn "select TaskId, Text, AlarmTime from Tasks where TaskId = (?)" (Only taskId) :: IO [Task.Task]
       close conn
       return result
 
