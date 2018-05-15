@@ -6,6 +6,7 @@ module TasksStorage where
 
 import GHC.Int
 import qualified Data.Text as Text
+import Text.Printf
 
 import Database.SQLite.Simple
 import Database.SQLite.Simple.FromRow
@@ -13,6 +14,9 @@ import Database.SQLite.Simple.Types
 
 type Task = Text.Text
 type TaskId = GHC.Int.Int64
+
+showTask :: (TaskId, Task) -> Text.Text
+showTask (id, text) = Text.pack $ printf "%d: %s" id (Text.unpack text)
 
 data Database = Database String
 
