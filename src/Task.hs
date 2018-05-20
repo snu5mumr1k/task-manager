@@ -4,6 +4,7 @@
 
 module Task where
 
+import Data.Maybe
 import Data.Time.Format
 import GHC.Int
 import Text.Printf
