@@ -11,13 +11,14 @@ import Database.SQLite.Simple
 data Database = Database String
 
 data TasksStorage = TasksStorage
-  { addTask :: Task.Text -> IO Task.Id
+  { addTask :: Task.Task -> IO Task.Id
   , removeTask :: Task.Id -> IO ()
   , removeAllTasks :: IO ()
   , getTask :: Task.Id -> IO Task.Task
   , getAllTasks :: IO [Task.Task]
   }
 
+getTasksStorage :: String -> TasksStorage
 getTasksStorage databaseName = TasksStorage
   { addTask = addTask_
   , removeTask = removeTask_
@@ -28,7 +29,7 @@ getTasksStorage databaseName = TasksStorage
   where
     addTask_ task = do
       conn <- open databaseName
-      execute conn "insert into Tasks (Text) values(?)" (Only task)
+      execute conn "insert into Tasks (Text, AlarmTime) values(?, ?)" task
       taskId <- lastInsertRowId conn
       close conn
       return taskId

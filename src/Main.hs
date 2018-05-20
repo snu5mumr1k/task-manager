@@ -56,7 +56,7 @@ taskManager = BotApp
         reply "Start"
         return NoOp
       AddTask text -> Model tasksStorage <# do
-        taskId <- liftIO $ addTask tasksStorage text
+        taskId <- liftIO $ addTask tasksStorage $ Task.readTask text
         task <- liftIO $ getTask tasksStorage taskId
         replyText . Text.pack $ printf "Added new task:\n%s" $ show task
         return NoOp
