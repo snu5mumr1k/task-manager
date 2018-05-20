@@ -30,8 +30,8 @@ instance FromRow Task where
 instance ToRow Task where
   toRow (Task _ text alarmTime) = toRow (text, alarmTime)
 
-readTask :: Text -> Task
-readTask str = Task id text alarmTime
+read :: Text -> Task
+read str = Task id text alarmTime
   where
     parts = Text.splitOn "|" str
     id = 0
