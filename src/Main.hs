@@ -8,6 +8,8 @@ import qualified Task
 import TasksStorage
 
 import Control.Applicative
+import Control.Concurrent (threadDelay)
+import Control.Monad
 import Control.Monad.IO.Class
 import Data.Text.IO as TextIO
 import GHC.Exts hiding ((<#))
@@ -81,10 +83,11 @@ taskManager = BotApp
 runBot :: Token -> IO ()
 runBot token = do
   env <- defaultTelegramClientEnv token
-  startBot_ (conversationBot updateChatId taskManager) env
+  startBotAsync_ taskManager env
 
 main :: IO ()
 main = do
   setupDatabase $ Database databaseName
   token <- getEnv $ "TELEGRAM_TOKEN"
   runBot . Token . Text.pack $ token
+  forever $ threadDelay 1000000
