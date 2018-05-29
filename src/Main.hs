@@ -27,6 +27,7 @@ data Action
   | AddTask Task.Text
   | RemoveTask Task.Text
   | Show
+  | Help
   deriving (Show, Read)
 
 data Model = Model TasksStorage
@@ -49,6 +50,7 @@ taskManager = BotApp
       <|> AddTask <$> command "add"
       <|> RemoveTask <$> command "remove"
       <|> Show <$ command "show"
+      <|> Help <$ command "help"
       <|> callbackQueryDataRead
 
     handleAction :: Action -> Model -> Eff Action Model
@@ -78,6 +80,18 @@ taskManager = BotApp
         case tasks of
           [] -> replyText $ "There are no tasks"
           tasks -> replyText . Text.intercalate "\n-------\n" $ map (Text.pack . show) tasks
+        return NoOp
+      Help -> Model tasksStorage <# do
+        replyText $ Text.unlines
+          [ "I will help you to manage you tasks"
+          , ""
+          , "Type"
+          , "<%Y-%m-%dT%H:%M:%S> | <Task body> -- to add new task"
+          , "/add <%Y-%m-%dT%H:%M:%S> | <Task body> -- to add new task"
+          , "/show -- to show list of all tasks with Ids"
+          , "/remove <Id> -- to remove task with this Id"
+          , "/remove -- to clear storage"
+          ]
         return NoOp
 
 runBot :: Token -> IO ()
